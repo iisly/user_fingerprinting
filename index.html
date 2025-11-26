@@ -13,8 +13,11 @@
 
         /* Color Palette */
         --c-unknown: #e0e0e0;
-        --c-win: #0078d4;
-        --c-linux: #d94f04;
+        --c-win: #0078d4; /* Windows Blue */
+        --c-linux: #d94f04; /* Ubuntu Orange */
+        --c-android: #3ddc84; /* Android Green */
+        --c-ios: #000000; /* Apple Black */
+
         --c-chrome: #4285f4;
         --c-firefox: #ff7139;
         --c-safari: #00acfd;
@@ -23,10 +26,11 @@
         --c-p3: #e91e63;
         --c-dark: #2c3e50;
         --c-motion: #8e44ad;
-        --c-input-mouse: #9b59b6; /* Purple */
-        --c-input-touch: #e67e22; /* Orange */
-        --c-hdr: #f1c40f; /* Yellow */
-        --c-forced: #000000; /* Black for High Contrast */
+
+        --c-input-mouse: #9b59b6;
+        --c-input-touch: #e67e22;
+        --c-hdr: #f1c40f;
+        --c-forced: #000000;
       }
 
       body {
@@ -73,7 +77,7 @@
         flex-grow: 1;
         height: 120px;
         border-radius: 8px;
-        background-color: var(--c-unknown); /* Default */
+        background-color: var(--c-unknown);
         background-size: cover;
         background-position: center;
         display: flex;
@@ -114,7 +118,7 @@
       }
 
       /* =========================================
-       1. OS Fingerprinting (Math Calc Precision)
+       1. OS Fingerprinting Logic
        ========================================= */
       .os-detector {
         container-type: inline-size;
@@ -136,10 +140,10 @@
         position: absolute;
         top: 0;
         left: 0;
-        opacity: 0; /* Hidden logical element */
+        opacity: 0;
       }
 
-      /* Windows 11 Logic: ~1.84375px */
+      /* 1. Windows 11 (Desktop) */
       @container (width > 1.8px) and (width < 1.9px) {
         .os-target {
           background-color: var(--c-win) !important;
@@ -149,20 +153,45 @@
         }
       }
 
-      /* Ubuntu 22.04 Logic: 0px */
+      /* 2. Ubuntu / Linux (Desktop) */
       @container (width < 0.1px) {
         .os-target {
           background-color: var(--c-linux) !important;
         }
         .os-target::after {
-          content: "Ubuntu 22.04" !important;
+          content: "Ubuntu / Linux" !important;
+        }
+      }
+
+      /* 3. Android (Linux Kernel + Touch) */
+      /* Math result is 0px (same as Linux), but Pointer is Coarse */
+      @media (pointer: coarse) {
+        @container (width < 0.1px) {
+          .os-target {
+            background-color: var(--c-android) !important;
+          }
+          .os-target::after {
+            content: "Android" !important;
+          }
+        }
+      }
+
+      /* 4. iOS / iPadOS (Explicit Detection) */
+      /* Logic: Supports iOS-specific CSS property AND has Touch interface */
+      @media (pointer: coarse) {
+        @supports (-webkit-touch-callout: none) {
+          .os-target {
+            background-color: var(--c-ios) !important;
+          }
+          .os-target::after {
+            content: "iOS / iPadOS" !important;
+          }
         }
       }
 
       /* =========================================
-       2. Browser Fingerprinting (Feature Queries)
+       2. Browser Fingerprinting
        ========================================= */
-      /* Firefox */
       @supports (-moz-appearance: none) {
         .browser-target {
           background-color: var(--c-firefox) !important;
@@ -172,7 +201,6 @@
         }
       }
 
-      /* Safari */
       @supports (font: -apple-system-body) {
         .browser-target {
           background-color: var(--c-safari) !important;
@@ -182,7 +210,6 @@
         }
       }
 
-      /* Chromium (Chrome, Edge, Brave) */
       @supports (
         (-webkit-appearance: none) and (not (-moz-appearance: none)) and
           (not (font: -apple-system-body))
@@ -196,7 +223,7 @@
       }
 
       /* =========================================
-       3. Resolution (Pixel Ratio)
+       3. Resolution
        ========================================= */
       .res-target::after {
         content: "Standard (1x)";
@@ -215,7 +242,7 @@
       }
 
       /* =========================================
-       4. Color Gamut (Display P3 / Rec2020)
+       4. Color Gamut
        ========================================= */
       .gamut-target::after {
         content: "sRGB (Standard)";
@@ -240,7 +267,7 @@
       }
 
       /* =========================================
-       5. Color Depth (Bit Depth)
+       5. Color Depth
        ========================================= */
       .depth-target::after {
         content: "8-bit Color";
@@ -259,7 +286,6 @@
       /* =========================================
        6. User Preferences
        ========================================= */
-      /* Dark Mode */
       .pref-dark-target::after {
         content: "Light Mode";
         background-color: #fff;
@@ -277,7 +303,9 @@
         }
       }
 
-      /* Reduced Motion */
+      /* =========================================
+       7. Accessibility
+       ========================================= */
       .pref-motion-target::after {
         content: "Standard Motion";
       }
@@ -292,7 +320,7 @@
       }
 
       /* =========================================
-       7. Input Mechanism (Pointer)
+       8. Input Mechanism
        ========================================= */
       .input-target::after {
         content: "Unknown";
@@ -317,7 +345,7 @@
       }
 
       /* =========================================
-       8. Dynamic Range (HDR)
+       9. Dynamic Range
        ========================================= */
       .hdr-target::after {
         content: "Standard Dynamic Range (SDR)";
@@ -334,7 +362,7 @@
       }
 
       /* =========================================
-       9. Forced Colors (High Contrast)
+       10. Forced Colors
        ========================================= */
       .contrast-target::after {
         content: "Standard Mode";
@@ -358,7 +386,15 @@
       <!-- CARD 1: OS Detection -->
       <div class="card">
         <h3>Operating System</h3>
-        <div style="position: relative; width: 100%; height: 120px">
+        <div
+          style="
+            position: relative;
+            width: 100%;
+            height: 120px;
+            overflow: hidden;
+            border-radius: 8px;
+          "
+        >
           <div class="os-detector">
             <div
               class="status-display os-target"
@@ -373,7 +409,10 @@
           <div
             class="os-detector"
             style="
-              position: relative;
+              position: absolute;
+              left: 50%;
+              top: 0;
+              transform: translateX(-50%);
               opacity: 1;
               width: calc(
                 1px *
@@ -391,21 +430,33 @@
               );
             "
           >
-            <div class="status-display os-target" style="width: 260px"></div>
+            <div
+              class="status-display os-target"
+              style="
+                width: 100vw;
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+              "
+            ></div>
           </div>
         </div>
         <div class="legend">
           <div class="legend-item">
             <div class="dot" style="background: var(--c-win)"></div>
-            Windows 11
+            Win 11
           </div>
           <div class="legend-item">
             <div class="dot" style="background: var(--c-linux)"></div>
-            Ubuntu 22.04
+            Ubuntu
           </div>
           <div class="legend-item">
-            <div class="dot" style="background: var(--c-unknown)"></div>
-            Other
+            <div class="dot" style="background: var(--c-android)"></div>
+            Android
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-ios)"></div>
+            iOS
           </div>
         </div>
       </div>
