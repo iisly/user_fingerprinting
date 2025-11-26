@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSS User Fingerprinting Report</title>
+    <style>
+      :root {
+        --bg-color: #f4f4f9;
+        --card-bg: #ffffff;
+        --text-main: #333;
+        --text-sub: #666;
+
+        /* Color Palette */
+        --c-unknown: #e0e0e0;
+        --c-win: #0078d4;
+        --c-linux: #d94f04;
+        --c-chrome: #4285f4;
+        --c-firefox: #ff7139;
+        --c-safari: #00acfd;
+        --c-high: #2ecc71;
+        --c-std: #95a5a6;
+        --c-p3: #e91e63;
+        --c-dark: #2c3e50;
+        --c-motion: #8e44ad;
+        --c-input-mouse: #9b59b6; /* Purple */
+        --c-input-touch: #e67e22; /* Orange */
+        --c-hdr: #f1c40f; /* Yellow */
+        --c-forced: #000000; /* Black for High Contrast */
+      }
+
+      body {
+        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        margin: 0;
+        padding: 40px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 40px;
+        font-weight: 300;
+        letter-spacing: -1px;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card h3 {
+        margin: 0 0 15px 0;
+        font-size: 1.1rem;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+      }
+
+      /* === FINGERPRINT DISPLAY BOX === */
+      .status-display {
+        flex-grow: 1;
+        height: 120px;
+        border-radius: 8px;
+        background-color: var(--c-unknown); /* Default */
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 15px;
+      }
+
+      .status-display::after {
+        content: "Unknown / Default";
+      }
+
+      /* === LEGEND === */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-sub);
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      /* =========================================
+       1. OS Fingerprinting (Math Calc Precision)
+       ========================================= */
+      .os-detector {
+        container-type: inline-size;
+        width: calc(
+          1px *
+            (
+              e + pi *
+                sin(
+                  317326.39402987924 * -210861.19767869983 *
+                    (
+                      36781.96919420755 / cos(129868.3654533018) *
+                        cos(-30780.497322536892) - pi * -115536.38801368067 *
+                        0.1396149976644665
+                    )
+                )
+            )
+        );
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0; /* Hidden logical element */
+      }
+
+      /* Windows 11 Logic: ~1.84375px */
+      @container (width > 1.8px) and (width < 1.9px) {
+        .os-target {
+          background-color: var(--c-win) !important;
+        }
+        .os-target::after {
+          content: "Windows 11" !important;
+        }
+      }
+
+      /* Ubuntu 22.04 Logic: 0px */
+      @container (width < 0.1px) {
+        .os-target {
+          background-color: var(--c-linux) !important;
+        }
+        .os-target::after {
+          content: "Ubuntu 22.04" !important;
+        }
+      }
+
+      /* =========================================
+       2. Browser Fingerprinting (Feature Queries)
+       ========================================= */
+      /* Firefox */
+      @supports (-moz-appearance: none) {
+        .browser-target {
+          background-color: var(--c-firefox) !important;
+        }
+        .browser-target::after {
+          content: "Firefox" !important;
+        }
+      }
+
+      /* Safari */
+      @supports (font: -apple-system-body) {
+        .browser-target {
+          background-color: var(--c-safari) !important;
+        }
+        .browser-target::after {
+          content: "Safari / WebKit" !important;
+        }
+      }
+
+      /* Chromium (Chrome, Edge, Brave) */
+      @supports (
+        (-webkit-appearance: none) and (not (-moz-appearance: none)) and
+          (not (font: -apple-system-body))
+      ) {
+        .browser-target {
+          background-color: var(--c-chrome) !important;
+        }
+        .browser-target::after {
+          content: "Chromium" !important;
+        }
+      }
+
+      /* =========================================
+       3. Resolution (Pixel Ratio)
+       ========================================= */
+      .res-target::after {
+        content: "Standard (1x)";
+      }
+      .res-target {
+        background-color: var(--c-std);
+      }
+
+      @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+        .res-target {
+          background-color: var(--c-high) !important;
+        }
+        .res-target::after {
+          content: "High-Res (Retina)" !important;
+        }
+      }
+
+      /* =========================================
+       4. Color Gamut (Display P3 / Rec2020)
+       ========================================= */
+      .gamut-target::after {
+        content: "sRGB (Standard)";
+      }
+
+      @media (color-gamut: p3) {
+        .gamut-target {
+          background-color: var(--c-p3) !important;
+        }
+        .gamut-target::after {
+          content: "Display P3" !important;
+        }
+      }
+
+      @media (color-gamut: rec2020) {
+        .gamut-target {
+          background-color: #8e44ad !important;
+        }
+        .gamut-target::after {
+          content: "Rec. 2020" !important;
+        }
+      }
+
+      /* =========================================
+       5. Color Depth (Bit Depth)
+       ========================================= */
+      .depth-target::after {
+        content: "8-bit Color";
+      }
+
+      @media (min-color: 10) {
+        .depth-target {
+          background-color: #f1c40f !important;
+          color: #333 !important;
+        }
+        .depth-target::after {
+          content: "10-bit+ (HDR Ready)" !important;
+        }
+      }
+
+      /* =========================================
+       6. User Preferences
+       ========================================= */
+      /* Dark Mode */
+      .pref-dark-target::after {
+        content: "Light Mode";
+        background-color: #fff;
+        color: #333;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .pref-dark-target {
+          background-color: var(--c-dark) !important;
+        }
+        .pref-dark-target::after {
+          content: "Dark Mode" !important;
+          background: transparent;
+          color: #fff;
+        }
+      }
+
+      /* Reduced Motion */
+      .pref-motion-target::after {
+        content: "Standard Motion";
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .pref-motion-target {
+          background-color: var(--c-motion) !important;
+        }
+        .pref-motion-target::after {
+          content: "Reduced Motion" !important;
+        }
+      }
+
+      /* =========================================
+       7. Input Mechanism (Pointer)
+       ========================================= */
+      .input-target::after {
+        content: "Unknown";
+      }
+
+      @media (pointer: fine) {
+        .input-target {
+          background-color: var(--c-input-mouse) !important;
+        }
+        .input-target::after {
+          content: "Fine (Mouse/Trackpad)" !important;
+        }
+      }
+
+      @media (pointer: coarse) {
+        .input-target {
+          background-color: var(--c-input-touch) !important;
+        }
+        .input-target::after {
+          content: "Coarse (Touch)" !important;
+        }
+      }
+
+      /* =========================================
+       8. Dynamic Range (HDR)
+       ========================================= */
+      .hdr-target::after {
+        content: "Standard Dynamic Range (SDR)";
+      }
+
+      @media (dynamic-range: high) {
+        .hdr-target {
+          background-color: var(--c-hdr) !important;
+          color: #333 !important;
+        }
+        .hdr-target::after {
+          content: "High Dynamic Range (HDR)" !important;
+        }
+      }
+
+      /* =========================================
+       9. Forced Colors (High Contrast)
+       ========================================= */
+      .contrast-target::after {
+        content: "Standard Mode";
+      }
+
+      @media (forced-colors: active) {
+        .contrast-target {
+          background-color: var(--c-forced) !important;
+          border: 2px solid white;
+        }
+        .contrast-target::after {
+          content: "High Contrast Mode" !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CSS Fingerprinting Report (No JS)</h1>
+
+    <div class="dashboard">
+      <!-- CARD 1: OS Detection -->
+      <div class="card">
+        <h3>Operating System</h3>
+        <div style="position: relative; width: 100%; height: 120px">
+          <div class="os-detector">
+            <div
+              class="status-display os-target"
+              style="
+                width: 100vw;
+                position: fixed;
+                visibility: hidden;
+                pointer-events: none;
+              "
+            ></div>
+          </div>
+          <div
+            class="os-detector"
+            style="
+              position: relative;
+              opacity: 1;
+              width: calc(
+                1px *
+                  (
+                    e + pi *
+                      sin(
+                        317326.39402987924 * -210861.19767869983 *
+                          (
+                            36781.96919420755 / cos(129868.3654533018) *
+                              cos(-30780.497322536892) - pi *
+                              -115536.38801368067 * 0.1396149976644665
+                          )
+                      )
+                  )
+              );
+            "
+          >
+            <div class="status-display os-target" style="width: 260px"></div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-win)"></div>
+            Windows 11
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-linux)"></div>
+            Ubuntu 22.04
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            Other
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: Browser Engine -->
+      <div class="card">
+        <h3>Browser Engine</h3>
+        <div class="status-display browser-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-chrome)"></div>
+            Chromium
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-firefox)"></div>
+            Firefox
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-safari)"></div>
+            Safari
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: Screen Resolution -->
+      <div class="card">
+        <h3>Resolution (DPI)</h3>
+        <div class="status-display res-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-std)"></div>
+            Standard (1x)
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-high)"></div>
+            Retina/HiDPI
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: Color Gamut -->
+      <div class="card">
+        <h3>Color Gamut</h3>
+        <div class="status-display gamut-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            sRGB
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-p3)"></div>
+            Display P3
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: #8e44ad"></div>
+            Rec. 2020
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 5: Color Depth -->
+      <div class="card">
+        <h3>Color Depth</h3>
+        <div class="status-display depth-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            8-bit
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: #f1c40f"></div>
+            10-bit+
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 6: User Preferences -->
+      <div class="card">
+        <h3>System Theme</h3>
+        <div class="status-display pref-dark-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div
+              class="dot"
+              style="background: #fff; border: 1px solid #ccc"
+            ></div>
+            Light
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-dark)"></div>
+            Dark
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 7: Accessibility -->
+      <div class="card">
+        <h3>Motion Preference</h3>
+        <div class="status-display pref-motion-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            Standard
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-motion)"></div>
+            Reduced
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 8: Input Mechanism -->
+      <div class="card">
+        <h3>Input Device</h3>
+        <div class="status-display input-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-input-mouse)"></div>
+            Mouse (Fine)
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-input-touch)"></div>
+            Touch (Coarse)
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 9: Dynamic Range -->
+      <div class="card">
+        <h3>HDR Support</h3>
+        <div class="status-display hdr-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            SDR
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-hdr)"></div>
+            HDR
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 10: Forced Colors -->
+      <div class="card">
+        <h3>High Contrast Mode</h3>
+        <div class="status-display contrast-target"></div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-unknown)"></div>
+            Standard
+          </div>
+          <div class="legend-item">
+            <div class="dot" style="background: var(--c-forced)"></div>
+            High Contrast
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
